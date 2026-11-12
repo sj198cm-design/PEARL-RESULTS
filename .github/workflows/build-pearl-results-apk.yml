@@ -1,0 +1,36 @@
+name: Build Pearl Results APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PearlResults_Android_ReadOnly_Source.zip'
+      - '.github/workflows/build-pearl-results-apk.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Unpack Android project
+        run: |
+          mkdir -p build-project
+          unzip -q PearlResults_Android_ReadOnly_Source.zip -d build-project
+          find build-project -maxdepth 3 -name settings.gradle
+      - name: Build APK
+        run: |
+          cd "$(dirname "$(find build-project -name settings.gradle -print -quit)")"
+          gradle assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PearlResults-debug-APK
+          path: build-project/**/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
